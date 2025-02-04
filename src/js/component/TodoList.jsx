@@ -1,86 +1,134 @@
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
 
 const TodoList = () => {
-    //estado para manejar el texto de la tarea que se escribe
-    const [inputValue, setinputValue] = useState("");
-    const [tasks, setTasks] = useState([])//Lista de tareas 
+
+  // Estado para manejar el texto del input
+  const [inputValue, setInputValue] = useState("");
+  // Estado para manejar la lista de tareas
+  const [tasks, setTasks] = useState([]);
+
+useEffect(()=>{
+  getTask();
+},[])
+
+const AddTaskToApi = () =>{
+  fetch('https://playground.4geeks.com/todo/todos/Manuel', {
+    method: "POST",
+    body: JSON.stringify({
+      "label": inputValue,
+      "is_done": false
+    }),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  .then(resp => {
+    // Intentará devolver el resultado exacto como string
+      return resp.json(); // Intentará parsear el resultado a JSON y retornará una promesa donde puedes usar .then para seguir con la lógica
+  })
+  .then(data => {
+    setTasks([...tasks, data])  
+    // Aquí es donde debe comenzar tu código después de que finalice la búsqueda
+      console.log(data); // Esto imprimirá en la consola el objeto exacto recibido del servidor
+  })
+  .catch(error => {
+      // Manejo de errores
+      console.log(error);
+  });
+}
 
 
-    const [hoveredTask, setHoveredTask] = useState(null); // Estado para la tarea en hover y poder ocultar boton de borrado
+const getTask = () =>{
+  fetch('https://playground.4geeks.com/todo/users/Manuel', {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  .then(resp => {
+    // Intentará devolver el resultado exacto como string
+      return resp.json(); // Intentará parsear el resultado a JSON y retornará una promesa donde puedes usar .then para seguir con la lógica
+  })
+  .then(data => {
+    setTasks(data.todos)  
+    // Aquí es donde debe comenzar tu código después de que finalice la búsqueda
+      console.log(data); // Esto imprimirá en la consola el objeto exacto recibido del servidor
+  })
+  .catch(error => {
+      // Manejo de errores
+      console.log(error);
+  });
+}
 
-    const deleteTask = (indexToDelete) => {//funcion para eliminar la tarea despues de pulsar el boton eliminar
-        const filteredTasks = tasks.filter((_, index) => index !== indexToDelete);
-        setTasks(filteredTasks); // Actualizamos las tareas
-    };
+  // Función para agregar una nueva tarea
+  const addTask = () => {
+    // Verificar que no esté vacío y que no se repita
+    if (inputValue.trim() === "") {
+      alert("La tarea no puede estar vacía.");
+      return;
+    }
+    if (tasks.includes(inputValue)) {
+      alert("Esta tarea ya existe.");
+      return;
+    }
+    AddTaskToApi()
+    setInputValue(""); // Limpiamos el campo de entrada
+  };
 
+  // Función para eliminar una tarea por su índice
+  const deleteTask = (indexToDelete) => {
+    const filteredTasks = tasks.filter((_, index) => index !== indexToDelete);
+    setTasks(filteredTasks);
+  };
 
-    return (
-        <div>
-            {/*CAMPO DE ENTRADA Del Formulario_______________________________*/}
-            <div className="input-group mb-3">
+  return (
+    <div className="container mt-4">
+      {/* Campo de entrada */}
+      <div className="input-group mb-3">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Escribe una tarea"
+          value={inputValue} // Enlazamos el valor del input con el estado
+          onChange={(e) => setInputValue(e.target.value)} // Actualizamos el estado cuando escriben
+        />
+        <button className="btn btn-primary" onClick={addTask}>
+          Añadir
+        </button>
+      </div>
 
+      {/* Cantidad total de tareas */}
+      <div className="text-center mb-3">
+        <strong>Tareas totales: {tasks.length}</strong>
+      </div>
 
-                <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Escriba una tarea aqui señorit@"
-                    value={inputValue}//aqui vinculamos el estado al input 
-                    onChange={(status) => setinputValue(status.target.value)}//actualizamos el estado al escribir
-                    onKeyDown={(status) => {
-                        if (status.key === "Enter" && inputValue.trim() !== "") {
-                            setTasks([...tasks, inputValue]);// Añadimos la nueva tarea al array de tasks 
-                            setinputValue("");//limpiamos el campo de entrada ya quelo hemos mandado a introducir en el array 
-                        }
-                    }}
-                />
+      {/* Lista de tareas */}
+      <ul className="list-group">
+        {/* Si no hay tareas */}
+        {tasks.length === 0 && (
+          <li className="list-group-item text-center text-muted">
+            No hay tareas. ¡Añade la primera tarea!
+          </li>
+        )}
 
-            </div>
-
-            {/*Campo de lista de tareas______________________________________  */}
-            <ul className="list-group">
-                {tasks.length === 0 ? ( // en caso de no haber tareas  escribo no hay tareas
-                    <li className="list-group-item text-center text-muted">
-                        No hay tareas, añadir tareas
-                    </li>
-                ) : (// en caso de haber añadido una tarea mostararla 
-                    tasks.map((task, index) => (//cojo dos parametros 1-lo que hay dentro del array 2 el index del array
-                        <li key={index}//estoy recogiendo la tarea selecionada con el index
-                            className="list-group-item d-flex justify-content-between align-items-center"
-                            onMouseEnter={() => setHoveredTask(index)} // Asignamos el índice de la tarea en hover cuando señalo la casilla de la lista 
-                            onMouseLeave={() => setHoveredTask(null)} // Restablecemos el hover cuado dejode señalar la casilla de la lista 
-                        >
-                            {task} {/* Muestra la tarea guardada en la lista asignada a ese indice */}
-                            {/* Mostrar botón solo si esta tarea está en hover */}
-                            {hoveredTask === index && (//si el index i el boton estan alineados entonces borramos la tarea deese index
-                                <button
-                                    className="btn btn-danger btn-sm"
-                                    onClick={() => deleteTask(index)} // Lógica para eliminar tarea
-                                >
-                                    Eliminar
-                                </button>
-                            )}
-                        </li>
-                    ))
-                )}
-            </ul>
-
-
-            {/*Campo numero de tareas de la lista ______________________________________  */}
-            <div className="text-center mb-3">
-                {tasks.length === 0 ? (
-                    <strong>No hay tareas. ¡Añade la primera tarea!</strong>
-                ) : (
-                    <strong>Tareas añadidas: {tasks.length}</strong>
-                )}
-            </div>
-
-
-
-
-        </div>
-    )
-
+        {/* Si hay tareas, las mostramos */}
+        {tasks.map((task, index) => (
+          <li
+            key={index}
+            className="list-group-item d-flex justify-content-between align-items-center"
+          >
+            {task.label}
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={() => deleteTask(index)}
+            >
+              Eliminar
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 };
 
 export default TodoList;
